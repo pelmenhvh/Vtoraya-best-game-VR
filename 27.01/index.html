@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>VR Игра — Сбор объектов</title>
+
+<script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+
+<style>
+body { margin:0; }
+</style>
+
+<script>
+let score = 0;
+let totalObjects = 5;
+let timeLeft = 60;
+let timerInterval;
+
+function spawnObjects() {
+  const scene = document.querySelector('a-scene');
+
+  for (let i = 0; i < totalObjects; i++) {
+    const box = document.createElement('a-box');
+    const x = Math.random() * 6 - 3;
+    const z = -3 - Math.random() * 4;
+
+    box.setAttribute('position', `${x} 1 ${z}`);
+    box.setAttribute('color', 'blue');
+
+    box.addEventListener('mouseenter', () => collect(box));
+
+    scene.appendChild(box);
+  }
+}
+
+function collect(obj) {
+  score++;
+  document.querySelector('#score')
+    .setAttribute('value', 'Собрано: ' + score);
+
+  document.querySelector('#collectSound')
+    .components.sound.playSound();
+
+  obj.setAttribute('animation__scale', {
+    property: 'scale',
+    to: '0 0 0',
+    dur: 250
+  });
+
+  setTimeout(() => obj.remove(), 250);
+
+  if (score === totalObjects) {
+    winGame();
+  }
+}
+
+function winGame() {
+  clearInterval(timerInterval);
+
+  // отключаем курсор
+  document.querySelector('a-cursor').setAttribute('visible', 'false');
+
+  // звук победы
+  document.querySelector('#winSound').components.sound.playSound();
+
+  // показываем экран победы
+  document.querySelector('#winPanel').setAttribute('visible', 'true');
+
+  // запускаем конфетти
+  spawnConfetti();
+}
+
+function spawnConfetti() {
+  const scene = document.querySelector('a-scene');
+
+  for (let i = 0; i < 40; i++) {
+    const conf = document.createElement('a-sphere');
+
+    const x = (Math.random() - 0.5) * 4;
+    const y = 4 + Math.random() * 2;
+    const z = -4 + (Math.random() - 0.5) * 2;
+
+    conf.setAttribute('radius', 0.05);
+    conf.setAttribute('color', randomColor());
+    conf.setAttribute('position', `${x} ${y} ${z}`);
+
+    conf.setAttribute('animation', {
+      property: 'position',
+      to: `${x} -1 ${z}`,
+      dur: 2000 + Math.random()*1000
+    });
+
+    scene.appendChild(conf);
+
+    setTimeout(() => conf.remove(), 3000);
+  }
+}
+
+function randomColor() {
+  const colors = ['red','yellow','blue','green','purple','orange'];
+  return colors[Math.floor(Math.random()*colors.length)];
+}
+
+function startTimer() {
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    document.querySelector('#timer')
+      .setAttribute('value', 'Время: ' + timeLeft);
+
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      location.reload();
+    }
+  }, 1000);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const scene = document.querySelector('a-scene');
+
+  scene.addEventListener('loaded', () => {
+    spawnObjects();
+    startTimer();
+  });
+});
+</script>
+
+</head>
+
+<body>
+
+<a-scene>
+
+  <!-- Камера -->
+  <a-camera position="0 1.6 5">
+    <a-cursor fuse="true" fuse-timeout="500"></a-cursor>
+  </a-camera>
+
+  <!-- Свет -->
+  <a-light type="ambient" intensity="1"></a-light>
+
+  <!-- Пол -->
+  <a-plane rotation="-90 0 0"
+           width="20"
+           height="20"
+           color="#7BC8A4">
+  </a-plane>
+
+  <!-- Движущийся объект -->
+  <a-cone color="red"
+          position="0 2 -6"
+          animation="property: position; to: 4 2 -6; dur: 2000; loop: true; dir: alternate">
+  </a-cone>
+
+  <!-- UI -->
+  <a-text id="score"
+          value="Собрано: 0"
+          position="-1 2 -3"
+          color="black">
+  </a-text>
+
+  <a-text id="timer"
+          value="Время: 60"
+          position="1 2 -3"
+          color="black">
+  </a-text>
+
+  <!-- Экран победы внутри VR -->
+  <a-entity id="winPanel" visible="false" position="0 2 -4">
+
+    <a-plane width="4"
+             height="2"
+             color="#222"
+             opacity="0.9">
+    </a-plane>
+
+    <a-text value="Maladec ti pobedil!"
+            align="center"
+            color="yellow"
+            position="0 0.5 0.1"
+            scale="2 2 2"
+            animation="property: rotation; to: 0 360 0; loop: true; dur: 4000">
+    </a-text>
+
+    <a-text value="Pobeda ti sobral vse predmeti!"
+            align="center"
+            color="white"
+            position="0 -0.3 0.1">
+    </a-text>
+
+  </a-entity>
+
+  <!-- Звук сбора -->
+  <a-sound id="collectSound"
+           src="https://cdn.aframe.io/basic-guide/audio/backgroundnoise.wav">
+  </a-sound>
+
+  <!-- Звук победы -->
+  <a-sound id="winSound"
+           src="https://cdn.aframe.io/basic-guide/audio/boing.wav">
+  </a-sound>
+
+</a-scene>
+
+</body>
+</html>
